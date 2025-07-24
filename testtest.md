@@ -1,4 +1,0 @@
-```bash
-Single-GPU inference
-```
-
