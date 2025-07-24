@@ -1,0 +1,150 @@
+# ========================
+#  VideoX-Fun-ft 训练配置
+# ========================
+
+# -------- 基础路径 --------
+pretrained_model_name_or_path: ./pretrained/stable-diffusion   # 预训练模型路径或 HuggingFace 模型名
+train_data_dir: ./data/inpaint                                  # 训练数据文件夹
+train_data_meta: null                                           # 可选：训练数据的 CSV 标注文件
+output_dir: output_dir/talk_sing_exp2                                  # 模型输出路径
+seed: 42                                                        # 随机种子
+
+# -------- 日志与监控 --------
+logging_dir: logs                           # TensorBoard 日志目录
+tracker_project_name: text2image-fine-tune # 加速器监控项目名（如 wandb、tensorboard）
+log_tensorboard: true                      # 启用 tensorboard 日志记录
+report_to: tensorboard
+
+# -------- 数据增强 --------
+random_flip: true                # 是否对图像随机水平翻转
+random_ratio_crop: false         # 是否使用随机长宽比裁剪
+random_frame_crop: false         # 是否随机裁剪视频帧
+random_hw_adapt: true           # 是否随机调整图像分辨率
+enable_bucket: true             # 是否启用 bucket 分辨率采样（SD 的 bucket 训练）
+
+# -------- Tokenizer --------
+tokenizer_max_length: 512        # 文本 tokenizer 的最大长度
+
+# -------- 批量与 VAE --------
+train_batch_size: 2              # 每张 GPU 的 batch size
+vae_mini_batch: 1                # VAE 编码的 mini-batch size（避免爆显存）
+gradient_accumulation_steps: 1   # 梯度累计步数
+low_vram: true                   # 是否启用低显存模式（模型按需释放）
+
+# -------- 训练轮数和步数 --------
+num_train_epochs: 100             # 总训练轮数
+max_train_steps: 10000           # 总训练步数（优先生效）
+
+# -------- 优化器参数 --------
+learning_rate: 1e-4                  # 初始学习率
+scale_lr: false                      # 是否根据 GPU/累计步数/batch_size 缩放学习率
+weight_decay: 0.01                   # 权重衰减（L2 正则化）
+
+adam_beta1: 0.9                      # Adam 优化器 β1 参数（动量项）
+adam_beta2: 0.999                    # Adam 优化器 β2 参数（二阶矩估计）
+adam_weight_decay: 3e-2             # Adam 的权重衰减（若覆盖 weight_decay）
+adam_epsilon: 1e-10                  # Adam 中的 ε 值（防止除以 0）
+max_grad_norm: 0.05                   # 梯度裁剪的最大范数
+
+
+# -------- 学习率调度 --------
+lr_scheduler: cosine             # 调度策略：["linear", "cosine", "cosine_with_restarts", "polynomial", "constant", "constant_with_warmup"]
+lr_warmup_steps: 500             # 学习率 warmup 步数
+
+# -------- 混合精度与优化器 --------
+mixed_precision: bf16            # 混合精度训练：fp16 / bf16 / no
+use_8bit_adam: false             # 是否使用 8-bit Adam 优化器（来自 bitsandbytes）
+# allow_tf32: false                 # Ampere 架构下启用 TF32（更快）
+
+# -------- 数据加载设置 --------
+dataloader_num_workers: 8        # 子进程数：推荐为 CPU 核心数的一半，过大反而会导致负载
+
+
+# -------- 模型保存 --------
+checkpointing_steps: 500        # 每多少步保存一次 checkpoint
+checkpoints_total_limit: 3       # 最多保存多少个 checkpoint
+resume_from_checkpoint: null     # 是否从 checkpoint 恢复训练
+save_state: true                # 是否保存完整的训练 state（适用于 accelerator）
+
+# -------- 验证设置（如使用） --------
+validation_epochs: 5             # 每多少个 epoch 进行一次验证
+validation_steps: 2000           # 每多少步进行一次验证
+
+# -------- LoRA 设置 --------
+rank: 128                        # LoRA 矩阵秩
+network_alpha: 64                # LoRA alpha 缩放参数
+# lora_skip_name: null             # 不参与 LoRA 训练的模块名（可选）
+
+# -------- 训练模式 --------
+train_mode: inpaint              # 支持：normal / inpaint / other
+training_with_video_token_length: true   # 训练时是否考虑视频 token 长度
+
+# -------- Video / Token 采样设置 --------
+train_sampling_steps: 1000       # 训练采样时间步
+token_sample_size: 632           # token 样本尺寸
+video_sample_size: 632           # 视频图像输入尺寸
+image_sample_size: 632           # 图像输入尺寸
+video_sample_stride: 1           # 视频帧采样间隔
+video_sample_n_frames: 81        # 视频帧数量
+video_sample_fps: 16             # 视频帧率
+video_repeat: 50                  # 视频重复次数
+
+# -------- FlowMatch / Loss 权重 --------
+uniform_sampling: false          # 是否使用均匀 timestep 采样
+weighting_scheme: logit_normal   # 权重方案：logit_normal / mode / none 等
+logit_mean: 0.0                  # logit_normal 的均值
+logit_std: 1.0                   # logit_normal 的标准差
+mode_scale: 1.29                 # mode 权重方案的缩放系数
+
+# -------- 动态损失权重（用于运动一致性）--------
+motion_sub_loss: false            # 启用 motion sub loss
+motion_sub_loss_ratio: 0.2       # motion loss 与主 loss 的融合权重
+
+# -------- 模型路径（可选加载） --------
+config_path: null                # 配置文件路径（用于模型架构）
+transformer_path: null          # 可选：加载 transformer3D 权重
+vae_path: null                  # 可选：加载 VAE 权重
+use_deepspeed: true            # 是否启用 Deepspeed 加速
+
+# -------- 显存优化 --------
+gradient_checkpointing: true     # 启用梯度检查点（显存换计算）
+
+format: civitai
+pipeline: Wan
+transformer_additional_kwargs:
+  transformer_subpath: ./
+  dict_mapping:
+    in_dim: in_channels
+    dim: hidden_size
+
+vae_kwargs:
+  vae_subpath: Wan2.1_VAE.pth
+  temporal_compression_ratio: 4
+  spatial_compression_ratio: 8
+
+text_encoder_kwargs:
+  text_encoder_subpath: models_t5_umt5-xxl-enc-bf16.pth
+  tokenizer_subpath: google/umt5-xxl
+  text_length: 512
+  vocab: 256384
+  dim: 4096
+  dim_attn: 4096
+  dim_ffn: 10240
+  num_heads: 64
+  num_layers: 24
+  num_buckets: 32
+  shared_pos: False
+  dropout: 0.0
+
+scheduler_kwargs:
+  scheduler_subpath: null
+  num_train_timesteps: 1000
+  shift: 5.0
+  use_dynamic_shifting: false
+  base_shift: 0.5
+  max_shift: 1.15
+  base_image_seq_len: 256
+  max_image_seq_len: 4096
+
+image_encoder_kwargs:
+  image_encoder_subpath: models_clip_open-clip-xlm-roberta-large-vit-huge-14.pth
